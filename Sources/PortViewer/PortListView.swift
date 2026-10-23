@@ -35,8 +35,11 @@ struct PortListView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 12, weight: .semibold))
-                    .rotationEffect(.degrees(store.isScanning ? 360 : 0))
-                    .animation(store.isScanning ? .linear(duration: 0.6) : .default, value: store.isScanning)
+                    // Scope the animation to the rotation only, so the icon doesn't slide
+                    // into place while the popover lays out on first open.
+                    .animation(store.isScanning ? .linear(duration: 0.6) : nil) {
+                        $0.rotationEffect(.degrees(store.isScanning ? 360 : 0))
+                    }
             }
             .buttonStyle(IconButtonStyle())
             .help("Refresh")
@@ -77,9 +80,11 @@ struct PortListView: View {
         if let error = store.errorMessage {
             ErrorBanner(message: error) { store.errorMessage = nil }
         }
+        // Size from the unfiltered list so the popover keeps its height while filtering.
+        let listHeight = min(CGFloat(store.ports.count) * 52 + 12, 420)
         if ports.isEmpty {
             EmptyStateView(isFiltering: !store.searchText.isEmpty)
-                .frame(height: 180)
+                .frame(height: max(listHeight, 180))
         } else {
             ScrollView {
                 LazyVStack(spacing: 2) {
@@ -98,7 +103,7 @@ struct PortListView: View {
                 }
                 .padding(6)
             }
-            .frame(height: min(CGFloat(ports.count) * 52 + 12, 420))
+            .frame(height: listHeight, alignment: .top)
         }
     }
 
@@ -263,8 +268,8 @@ private struct PortBadge: View {
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 3)
-        .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
-        .foregroundStyle(Color.accentColor)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+        .foregroundStyle(.primary)
         .help("\(port.bindingDescription) (\(port.addresses.joined(separator: ", ")))")
     }
 }
